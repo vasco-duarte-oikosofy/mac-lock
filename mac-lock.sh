@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # mac-lock.sh — watches the lid angle sensor and locks the screen once the
-# lid is down to 20% of its fully-open angle (i.e. nearly closed). Triggering
+# lid is down to 30% of its fully-open angle (i.e. nearly closed). Triggering
 # a bit before full closure — rather than waiting for AppleClamshellState to
 # flip, which happens right as the lid bottoms out — gives the lock command
 # a brief head start on macOS's "clamshell sleep" transition instead of
@@ -21,8 +21,8 @@ LIDANGLE="$SCRIPT_DIR/lidangle"
 LOCKER="$SCRIPT_DIR/locker"
 
 POLL_INTERVAL="${1:-0.2}"
-CLOSE_FRACTION="${2:-0.20}"   # trigger once the lid has closed down to this fraction of baseline remaining
-REOPEN_FRACTION="0.30"        # must reopen past this fraction of baseline to re-arm
+CLOSE_FRACTION="${2:-0.30}"   # trigger once the lid has closed down to this fraction of baseline remaining
+REOPEN_FRACTION="0.40"        # must reopen past this fraction of baseline to re-arm
 
 if [ ! -x "$LIDANGLE" ]; then
     echo "error: $LIDANGLE not found or not executable. Build it with: swiftc -O lidangle.swift -o lidangle" >&2
