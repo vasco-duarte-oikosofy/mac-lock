@@ -23,21 +23,42 @@ suspending yet.
 - A Mac with a lid angle sensor: MacBook Pro 16" (2019+, Intel) or any
   M-series MacBook Pro / MacBook Air (M2, 2022+). Desktop Macs and older
   MacBooks don't have this sensor.
-- Xcode Command Line Tools (for `swiftc`) to build `lidangle`.
-- Accessibility permission granted to whatever terminal app runs the
-  script (System Settings → Privacy & Security → Accessibility), since
-  locking the screen simulates the ⌃⌘Q keystroke via System Events.
+- Xcode Command Line Tools (for `swiftc`) to build `lidangle` and `locker`.
+- Accessibility permission granted to `locker` specifically (System
+  Settings → Privacy & Security → Accessibility), since locking the
+  screen posts the ⌃⌘Q keystroke via System Events. macOS ties this grant
+  to the exact binary, not to the terminal app that launches it, so
+  `locker` needs its own entry even if your terminal already has one.
 
 ## Setup
 
 ```sh
 swiftc -O lidangle.swift -o lidangle
+swiftc -O locker.swift -o locker
 ./mac-lock.sh
 ```
 
-Grant Accessibility permission to your terminal app when prompted (or
-add it manually under System Settings → Privacy & Security →
-Accessibility), then re-run.
+Grant Accessibility permission to `locker` when prompted (or add it
+manually under System Settings → Privacy & Security → Accessibility —
+you'll need to browse to the compiled `locker` binary), then re-run.
+
+`locker` sends the ⌃⌘Q keystroke via an in-process `NSAppleScript` call
+to System Events, rather than spawning `osascript` as a subprocess.
+The subprocess approach adds 100-300ms of process-spawn overhead —
+enough to lose the race against macOS's own clamshell-sleep transition
+once the lid is nearly shut. Running `NSAppleScript` in-process avoids
+the subprocess spawn; the remaining Apple Event IPC costs ~150ms, which
+is acceptable because the script triggers at 10% lid opening — well
+before clamshell sleep — giving the lock a comfortable head start.
+
+An even earlier version used `CGEventPost` directly, but that proved
+unreliable: events posted at the HID event tap (`cghidEventTap`) never
+reach WindowServer's lock shortcut handler, and events at the session
+tap (`cgSessionEventTap`) are silently dropped after the binary is
+rebuilt (macOS invalidates the Accessibility grant tied to the old code
+signature, yet `AXIsProcessTrusted()` still returns true, so the
+failure is invisible). System Events' `keystroke` command posts through
+the session event tap internally and reliably triggers the lock.
 
 ## Usage
 
@@ -61,6 +82,9 @@ once you reopen the lid past 20% of that baseline.
   page `0x0020`, usage `0x008A`) and prints the current angle in degrees
 - `lidangle` — compiled binary (build it yourself; not committed, since
   it's a compiled artifact)
+- `locker.swift` — posts the ⌃⌘Q lock-screen keystroke via in-process
+  `NSAppleScript` (System Events `keystroke`)
+- `locker` — compiled binary (build it yourself; not committed)
 
 ## Limitations
 

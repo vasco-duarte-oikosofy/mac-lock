@@ -8,6 +8,7 @@
 # racing it at the very last instant.
 #
 # Requires ./lidangle (compiled from lidangle.swift: `swiftc -O lidangle.swift -o lidangle`)
+# and ./locker (compiled from locker.swift: `swiftc -O locker.swift -o locker`)
 # Only works on Macs with a lid angle sensor (MacBook Pro 16" 2019+, M-series
 # MacBook Pro/Air from ~2021+).
 #
@@ -17,6 +18,7 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIDANGLE="$SCRIPT_DIR/lidangle"
+LOCKER="$SCRIPT_DIR/locker"
 
 POLL_INTERVAL="${1:-0.2}"
 CLOSE_FRACTION="${2:-0.10}"   # trigger once the lid has closed down to this fraction of baseline remaining
@@ -27,8 +29,18 @@ if [ ! -x "$LIDANGLE" ]; then
     exit 1
 fi
 
+if [ ! -x "$LOCKER" ]; then
+    echo "error: $LOCKER not found or not executable. Build it with: swiftc -O locker.swift -o locker" >&2
+    exit 1
+fi
+
 lock_screen() {
-    osascript -e 'tell application "System Events" to keystroke "q" using {control down, command down}'
+    local t0 t1 err rc
+    t0=$(date '+%s.%N')
+    err="$("$LOCKER" 2>&1)"
+    rc=$?
+    t1=$(date '+%s.%N')
+    echo "$(date '+%H:%M:%S')  lock_screen: locker rc=$rc elapsed=$(awk -v a="$t0" -v b="$t1" 'BEGIN{printf "%.3f", b-a}')s${err:+ stderr=\"$err\"}"
 }
 
 baseline=0
