@@ -15,7 +15,7 @@ the race.
 This script sidesteps the race by watching the lid **angle** continuously
 (not just open/closed) and locking the screen once the lid has closed
 down to a configurable fraction of its fully-open angle — by default,
-the last 10%, while it's still open enough that macOS hasn't started
+the last 20%, while it's still open enough that macOS hasn't started
 suspending yet.
 
 ## Requirements
@@ -48,7 +48,7 @@ The subprocess approach adds 100-300ms of process-spawn overhead —
 enough to lose the race against macOS's own clamshell-sleep transition
 once the lid is nearly shut. Running `NSAppleScript` in-process avoids
 the subprocess spawn; the remaining Apple Event IPC costs ~150ms, which
-is acceptable because the script triggers at 10% lid opening — well
+is acceptable because the script triggers at 20% lid opening — well
 before clamshell sleep — giving the lock a comfortable head start.
 
 An even earlier version used `CGEventPost` directly, but that proved
@@ -68,12 +68,12 @@ the session event tap internally and reliably triggers the lock.
 
 - `poll_interval_seconds` — how often to sample the lid angle (default `0.2`)
 - `remaining_open_fraction` — lock once the lid angle drops to this
-  fraction of the fully-open baseline (default `0.10`, i.e. the last 10%
+  fraction of the fully-open baseline (default `0.20`, i.e. the last 20%
   of the closing motion)
 
 The script tracks the widest angle it's seen as the "fully open"
 baseline, so it adapts to how far you actually open the lid. It re-arms
-once you reopen the lid past 20% of that baseline.
+once you reopen the lid past 30% of that baseline.
 
 ## Files
 
